@@ -1,0 +1,57 @@
+digraph GitSnapshot {
+  newrank=true;
+  rankdir=TB;
+  nodesep=1;
+  ranksep=1;
+
+  node [
+    fontsize=15
+    width=1.5
+    height=1
+  ]
+
+  subgraph cluster_commits {
+    label="commits";
+
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    C1 [shape=oval, label=<commit<br/>C1>, color = green, fontcolor = green];
+    C2 [shape=oval, label=<commit<br/>C2>];
+    C3 [shape=oval, label=<commit<br/>C3>, color = blue, fontcolor = blue];
+
+    C1 -> C2;
+    C2 -> C3;
+
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    
+    B1 [shape=note,
+      label=<<b>todo.txt</b>&nbsp;(version 1)<br align="left"/><font face="monospace">grocery:<br align="left"/>&nbsp;&nbsp;apple<br align="left"/>&nbsp;&nbsp;banana<br align="left"/></font>>, color = green, fontcolor = green];
+    B2 [shape=note, 
+      label=<<b>todo.txt</b>&nbsp;(version 2)<br align="left"/><font face="monospace">grocery:<br align="left"/>&nbsp;&nbsp;apple<br align="left"/>&nbsp;&nbsp;banana<br align="left"/>&nbsp;&nbsp;orange<br align="left"/></font>>];
+    B3 [shape=note, 
+      label=<<b>todo.txt</b>&nbsp;(version 3)<br align="left"/><font face="monospace">grocery:<br align="left"/>&nbsp;&nbsp;banana<br align="left"/>&nbsp;&nbsp;orange<br align="left"/>clean:<br align="left"/>&nbsp;&nbsp;dishes<br align="left"/>&nbsp;&nbsp;laundry<br align="left"/></font>>, color = blue, fontcolor = blue];
+
+    B1 -> B2 -> B3 [style=invis];
+  }
+
+  C1 -> B1 [style=dashed];
+  C2 -> B2 [style=dashed];
+  C3 -> B3 [style=dashed];
+
+  { rank=same; C1; B1; }
+  { rank=same; C2; B2; }
+  { rank=same; C3; B3; }
+
+}

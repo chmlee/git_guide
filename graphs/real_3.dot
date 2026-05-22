@@ -1,0 +1,45 @@
+digraph GitSnapshot {
+  splines=false; newrank=true; rankdir=TB; nodesep=1.5; ranksep=0.5; fontsize=35
+  node [ fontsize=30 width=1 height=1 ]
+
+  subgraph cluster_commits {
+    label="commits"; style="rounded"; color="#111111"; penwidth=2; margin=30;
+
+    node [ shape = oval ]
+    C1
+    C2
+    C3
+    C4 [shape=point, style=invis]
+    
+    C1 -> C2 -> C3
+    C3 -> C4 [style=invis]
+  }
+
+  subgraph cluster_storage {
+    label="storage"; style="rounded"; color="#111111"; penwidth=2; margin=30;
+    node [ fontsize=25 shape=note ]
+
+    B1 [ label = "survery.csv\n(version 1)" ]
+    B2 [ label = "clean.R\n(versoin 1)" ]
+    B3 [ label = "clean_survery.csv\n(version 1)" ]
+    B4 [ label = "model.R\n(version 1)" ]
+
+    edge [style=invis, weight=10];
+    B1 -> B2 -> B3 -> B4
+  }
+
+  { rank=same; C1; B1; }
+  { rank=same; C2; B2; }
+  { rank=same; C3; B3; }
+  { rank=same; C4; B4; }
+
+  edge [ style = dashed, color = black, penwidth = 2]
+  C3 -> { B1, B2, B3, B4 } [weight = 0]
+
+  edge [ style = dashed, color = gray, penwidth = 1 ]
+  C1 -> B1
+  C2 -> {B1, B2, B3}
+
+  edge [style=invis]
+  C4 -> {B1, B2, B3, B4}
+}

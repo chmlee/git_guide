@@ -1,0 +1,45 @@
+digraph GitSnapshot {
+  splines=false;
+  newrank=true;
+  rankdir=TB;
+  nodesep=1.5; 
+  ranksep=0.5;
+  fontsize=35
+
+  node [
+    fontsize=30
+    width=1
+    height=1
+  ]
+
+  subgraph cluster_commits {
+    label="commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [ shape = oval ]
+    C1
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [
+      fontsize=25
+      shape=note
+    ]
+
+    B1 [ label = "survery.csv" ]
+  }
+
+  { rank=same; C1; B1; }
+
+  edge [style = dashed, penwidth = 2]
+  C1 -> B1
+}

@@ -1,0 +1,71 @@
+digraph GitSnapshot {
+  layout=neato;
+  scale=1.25
+  splines=ortho
+
+  node [fontsize=30]
+
+  node [shape=plaintext]
+  Div_1 [pos="0,11!" style=invis]
+  Div_2 [pos="0,-1!" style=invis]
+  Div_1 -> Div_2 [style="solid" arrowhead=none penwidth=1]
+  Label_C [pos="-1,10!" label="COMMIT"]
+  Label_S [pos="1,10!"  label="STORAGE"]
+
+  T_c_man [ pos="-1,9!" label="main" ]
+  // T_c_rep [ pos="-3,9!" label="report-\nwriting" ]
+  // T_c_cln [ pos="-5,9!" label="data-\ncleaning" ]
+  // T_c_mod [ pos="-7,9!" label="model-\nbuilding" ]
+
+  T_f_man [ pos="1,9!" label="data" ]
+  // T_f_rep [ pos="3,9!" label="report\nwriting" ]
+  // T_f_cln [ pos="5,9!" label="data\ncleaning" ]
+  // T_f_mod [ pos="7,9!" label="model\nbuilding" ]
+
+  node [shape=note ]
+  F_sur_1 [pos="1,8!" label = "survery.csv\n(version 1)" color=red fontcolor=red]
+  // F_rep_1 [pos="3,7!" label = "report.Rmd\n(version 1)" ]
+  // F_clr_1 [pos="5,6!" label = "clean.R\n(versoin 1)" ]
+  // F_cls_1 [pos="5,5!" label = "clean_survery.csv\n(version 1)" ]
+  // F_mod_1 [pos="7,4!" label = "model.R\n(version 1)" ]
+  // F_clr_2 [pos="5,3!" label = "clean.R\n(versoin 2)" ]
+  // F_cls_2 [pos="5,2!" label = "clean_survery.csv\n(version 2)" ]
+  // F_mod_2 [pos="7,1!" label = "model.R\n(version 2)" ]
+  // F_rep_2 [pos="3,0!" label = "report.Rmd\n(version 2)" ];
+
+  node [shape=circle]
+  M1 [pos="-1,8!" color=red fontcolor=red]
+  // M2 [pos="-1,0!"]
+  //
+  // R1 [pos="-3,7!"]
+  // R2 [pos="-3,1!"]
+  //
+  // C1 [pos="-5,7!"]
+  // C2 [pos="-5,5!"]
+  //
+  // B1 [pos="-7,6!"]
+  // B2 [pos="-7,4!"]
+  // B3 [pos="-7,2!"]
+
+  edge [penwidth=3]
+
+  // M1 -> R1
+  // M1 -> C1
+  // C1 -> B1
+  // C1 -> C2
+  // {C2, B1} -> B2
+  // B2 -> B3
+  // {R1, B3} -> R2
+  // {M1, R2} -> M2
+
+  edge [style=dashed color=gray penwidth=1]
+  M1 -> F_sur_1 [color=red]
+  // R1 -> {F_sur_1, F_rep_1}
+  // C1 -> {F_sur_1, F_clr_1, F_cls_1}
+  // B1 -> {F_sur_1, F_clr_1, F_cls_1, F_mod_1}
+  // C2 -> {F_sur_1, F_clr_2, F_cls_2}
+  // B2 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_1}
+  // B3 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_2}
+  // R2 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_2 F_rep_2}
+  // M2 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_2 F_rep_2}
+}

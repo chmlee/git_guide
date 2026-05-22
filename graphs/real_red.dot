@@ -1,0 +1,110 @@
+digraph GitSnapshot {
+  splines=false; newrank=true; rankdir=TB; nodesep=1.5; ranksep=0.5; fontsize=35
+  node [ fontsize=30 width=1 height=1 ]
+
+  subgraph cluster_commits {
+    label="commits"; style="rounded"; color="#111111"; penwidth=2; margin=30;
+
+    node [ shape = oval ]
+    C1
+    C2
+    C3
+    C4
+    C5
+    C6
+    C7
+    C8, C9 [shape=point, style=invis]
+    
+    C1 -> C2 -> C3 -> C4 -> C5 -> C6 -> C7
+    C7 -> C8 -> C9 [style=invis]
+  }
+
+  subgraph cluster_storage {
+    label="storage"; style="rounded"; color="#111111"; penwidth=2; margin=30;
+    node [ fontsize=25 shape=note, shape="note", style="invis" ]
+
+    subgraph cluster_1 {
+     style="dashed"; label = "report writing"; fontsize = 30
+     B11 //[ label = "survery.csv\n(version 1)" ]
+     B21 //[ label = "clean.R\n(versoin 1)" ]
+     B31 //[ label = "clean_survery.csv\n(version 1)" ]
+     B41 //[ label = "model.R\n(version 1)" ]
+     B51 [ label = "report.Rmd\n(version 1)", style=solid ]
+     B61 //[ label = "clean.R\n(versoin 2)" ]
+     B71 //[ label = "clean_survery.csv\n(version 2)" ]
+     B81 //[ label = "model.R\n(version 2)" ]
+     B91 [ label = "report.Rmd\n(version 2)", style=solid  ]
+     B11 -> B21 -> B31 -> B41 -> B51 -> B61 -> B71 -> B81 -> B91 [weight=100, style=invis]
+    }
+
+    subgraph cluster_2 {
+     style="dashed"; label = "model building"; fontsize = 30
+     B12 //[ label = "survery.csv\n(version 1)" ]
+     B22 //[ label = "clean.R\n(versoin 1)" ]
+     B32 //[ label = "clean_survery.csv\n(version 1)" ]
+     B42 [ label = "model.R\n(version 1)", style=solid  ]
+     B52 //[ label = "report.Rmd\n(version 1)" ]
+     B62 //[ label = "clean.R\n(versoin 2)" ]
+     B72 //[ label = "clean_survery.csv\n(version 2)" ]
+     B82 [ label = "model.R\n(version 2)", style=solid  ]
+     B92 // [ label = "report.Rmd\n(version 2)" ]
+     B12 -> B22 -> B32 -> B42 -> B52 -> B62 -> B72 -> B82 -> B92 [weight=100, style=invis]
+    }
+
+    subgraph cluster_3 {
+     style="dashed"; label = "data cleaning"; fontsize = 30
+     B13 //[ label = "survery.csv\n(version 1)" ]
+     B23 [ label = "clean.R\n(versoin 1)", style=solid  ]
+     B33 [ label = "clean_survery.csv\n(version 1)", style=solid  ]
+     B43 //[ label = "model.R\n(version 1)" ]
+     B53 //[ label = "report.Rmd\n(version 1)" ]
+     B63 [ label = "clean.R\n(versoin 2)", style=solid  ]
+     B73 [ label = "clean_survery.csv\n(version 2)", style=solid  ]
+     B83 //[ label = "model.R\n(version 2)" ]
+     B93 //[ label = "report.Rmd\n(version 2)" ]
+     B13 -> B23 -> B33 -> B43 -> B53 -> B63 -> B73 -> B83 -> B93 [weight=100, style=invis]
+    }
+
+    subgraph cluster_4 {
+     style="dashed"; label = "raw data"; fontsize = 30
+     B14 [ label = "survery.csv\n(version 1)", style=solid  ]
+     B24 //[ label = "clean.R\n(versoin 1)" ]
+     B34 //[ label = "clean_survery.csv\n(version 1)" ]
+     B44 //[ label = "model.R\n(version 1)" ]
+     B54 //[ label = "report.Rmd\n(version 1)" ]
+     B64 //[ label = "clean.R\n(versoin 2)" ]
+     B74 //[ label = "clean_survery.csv\n(version 2)" ]
+     B84 //[ label = "model.R\n(version 2)" ]
+     B94 //[ label = "report.Rmd\n(version 2)" ]
+     B14 -> B24 -> B34 -> B44 -> B54 -> B64 -> B74 -> B84 -> B94 [weight=100, style=invis]
+    }
+  }
+
+  { rank=same; C1; B11; B12; B13; B14; }
+  { rank=same; C2; B21; B22; B23; B24; }
+  { rank=same; C3; B31; B32; B33; B34; }
+  { rank=same; C4; B41; B42; B43; B44; }
+  { rank=same; C5; B51; B52; B53; B54; }
+  { rank=same; C6; B61; B62; B63; B64; }
+  { rank=same; C7; B71; B72; B73; B74; }
+  { rank=same; C8; B81; B82; B83; B84; }
+  { rank=same; C9; B91; B92; B93; B94; }
+
+  edge [ style = dashed, color = gray, penwidth = 1 ]
+  C1 -> B14 [color=red, penwidth = 3]
+  C2 -> B14
+  C2 -> { B23, B33} [color=red, penwidth = 3]
+  C3 -> {B14, B23, B33}
+  C3 -> {B42 }[color=red, penwidth = 3]
+  C4 -> {B14, B23, B33, B42}
+  C4 -> B51 [color=red, penwidth = 3]
+  C5 -> { B14, B42, B51 }
+  C5 -> {B63, B73} [color=red, penwidth = 3]
+  C6 -> { B14, B51, B63, B73 }
+  C6 -> B82 [color=red, penwidth = 3]
+  C7 -> { B14, B63, B73, B82 }
+  C7 -> B91 [color=red, penwidth = 3]
+
+  edge [style=invis]
+  C6 -> {B14, B23, B33, B42, B51, B63, B73, B82, B91}
+}

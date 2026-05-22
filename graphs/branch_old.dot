@@ -1,0 +1,161 @@
+digraph GitSnapshot {
+  splines=false; newrank=true; rankdir=TB; nodesep=1.5; ranksep=0.5; fontsize=35
+  node [ fontsize=30 width=1 height=1 ]
+
+
+  subgraph cluster_commits {
+    label="commits"; style="rounded"; color="#111111"; penwidth=2; margin=30;
+    node [shape=point, style=invis]
+
+    subgraph cluster_b_main {
+      style="dashed"; label = "main"; fontsize = 30
+      main_top   [shape=point, style=invis, width=0]
+      C11 [shape=oval, style=solid, label=M1, group=main]
+      C21 
+      C31 
+      C41 
+      C51 
+      C61 
+      C71 
+      C81
+      C91 [shape=oval, style=solid, label=M2, group=main]
+      edge [style=invis, weight=100];
+      C11 -> C21 -> C31 -> C41 -> C51 -> C61 -> C71 -> C81 -> C91
+    }
+
+    subgraph cluster_b_report {
+      style="dashed"; label = "report writing"; fontsize = 30
+      report_top [shape=point, style=invis, width=0]
+      C14
+      C24 [shape=oval, style=solid, label=R1, group=report]
+      C34
+      C44
+      C54
+      C64
+      C74
+      C84 [shape=oval, style=solid, label=R2, group=report]
+      C94
+      edge [style=invis, weight=100];
+      C14 -> C24 -> C34 -> C44 -> C54 -> C64 -> C74 -> C84 -> C94
+    }
+
+
+    subgraph cluster_b_clean {
+      style="dashed"; label = "data cleaning"; fontsize = 30
+      clean_top  [shape=point, style=invis, width=0]
+      C12
+      C22 [shape=oval, style=solid, label=C1, group=clean]
+      C32 
+      C42 [shape=oval, style=solid, label=C2, group=clean]
+      C52
+      C62
+      C72
+      C82
+      C92
+
+      edge [style=invis, weight=100];
+      C12 -> C22 -> C32 -> C42 -> C52 -> C62 -> C72 -> C82 -> C92
+    }
+    subgraph cluster_b_model {
+      style="dashed"; label = "model building"; fontsize = 30
+      model_top  [shape=point, style=invis, width=0]
+      C13
+      C23
+      C33 [shape=oval, style=solid, label=B1, group=model]
+      C43 
+      C53 [shape=oval, style=solid, label=B2, group=model]
+      C63
+      C73 [shape=oval, style=solid, label=B3, group=model]
+      C83
+      C93
+
+      edge [style=invis, weight=100];
+      C13 -> C23 -> C33 -> C43 -> C53 -> C63 -> C73 -> C83 -> C93
+    }
+
+
+    subgraph cluster_b_exp {
+      style="dashed"; label = "experiment"; fontsize = 30
+      exp_top    [shape=point, style=invis, width=0]
+      C15
+      C25 
+      C35 
+      C45
+      C55
+      C65 [shape=oval, style=solid, label=E1, group=exp]
+      C75
+      C85
+      C95
+
+      edge [style=invis, weight=100];
+      C15 -> C25 -> C35 -> C45 -> C55 -> C65 -> C75 -> C85 -> C95
+    }
+
+
+  }
+  { rank=same; exp_top; model_top; clean_top; report_top; main_top; }
+exp_top -> model_top -> clean_top -> report_top -> main_top [style=invis, weight=5000]
+  exp_top    -> C15 [style=invis, weight=5000]
+model_top  -> C13 [style=invis, weight=5000]
+clean_top  -> C12 [style=invis, weight=5000]
+report_top -> C14 [style=invis, weight=5000]
+main_top   -> C11 [style=invis, weight=5000]
+
+  subgraph cluster_storage {
+    label="storage"; style="rounded"; color="#111111"; penwidth=2; margin=30;
+
+    node [ fontsize=25 shape=note ]
+    B1 [ label = "survery.csv\n(version 1)" ]
+    B2 [ label = "report.Rmd\n(version 1)" ]
+    B3 [ label = "clean.R\n(versoin 1)" ]
+    B4 [ label = "clean_survery.csv\n(version 1)" ]
+    B5 [ label = "model.R\n(version 1)" ]
+    B6 [ label = "clean.R\n(versoin 2)" ]
+    B7 [ label = "clean_survery.csv\n(version 2)" ]
+    B8 [ label = "model.R\n(version 2)" ]
+    B9 [ label = "report.Rmd\n(version 2)" ];
+
+    edge [style=invis, weight=10];
+    B1 -> B2 -> B3 -> B4 -> B5 -> B6 -> B7 -> B8 -> B9   }
+
+  edge [weight=10, penwidth = 2]
+  C11 -> C24 [constraint=false] // M1 -> R1
+  C11 -> C22 [constraint=false] // M1 -> C1
+  C22 -> C33 [constraint=false] // C1 -> B1
+  C22 -> C42                    // C1 -> C2
+  C33 -> C53                    // B1 -> B2
+  C42 -> C53 [constraint=false] // C2 -> B2
+  C53 -> C65 [constraint=false] // B2 -> E1
+  C53 -> C73                    // B2 -> B3
+  C65 -> C73 [constraint=false] // E1 -> B3
+  C24 -> C84                    // R1 -> R2
+  C73 -> C84 [constraint=false] // B3 -> R2
+  C84 -> C91                    // R2 -> M2
+  C11 -> C91 [constraint=false] // M1 -> M2
+
+  edge [color=gray, style=dashed, constraint=false, weight=0]
+  C11 -> {B1}             // M1
+  C24 -> {B1,B2}          // R1
+  C22 -> {B1,B2,B3,B4}    // C1
+  C33 -> {B1,B3,B4,B5}    // B1
+  C42 -> {B1,B6,B7}       // C2 
+  C53 -> {B1,B5,B6,B7}    // B2
+  C65 -> {B1,B6,B7,B8}    // E1
+  C73 -> {B1,B6,B7,B8}    // B3
+  C84 -> {B1,B2,B6,B7,B8} // B3
+  C91 -> {B1,B2,B6,B7,B9} // M2
+
+  { rank=same; C11; C12; C13; C14; C15; }
+  { rank=same; C21; C22; C23; C24; C25; }
+  { rank=same; C31; C32; C33; C34; C35; }
+  { rank=same; C41; C42; C43; C44; C45; }
+  { rank=same; C51; C52; C53; C54; C55; }
+  { rank=same; C61; C62; C63; C64; C65; }
+  { rank=same; C71; C72; C73; C74; C75; }
+  { rank=same; C81; C82; C83; C84; C85; }
+  { rank=same; C91; C92; C93; C94; C95; }
+
+  C11 -> C14 -> C12 -> C13 -> C15 [style=invis, weight=1000];
+
+
+}

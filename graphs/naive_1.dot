@@ -1,0 +1,55 @@
+digraph GitSnapshot {
+  newrank=true;
+  rankdir=TB;
+  nodesep=1.5; 
+  ranksep=0.5;
+  fontsize=35
+
+  node [
+    fontsize=30
+    width=1
+    height=1
+  ]
+
+  subgraph cluster_commits {
+    label="commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    edge [shape=oval]
+    C1 [label=<commit<br/>C1>];
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [
+      fontsize=25
+      shape=note
+    ]
+
+    B1  [label=<<b>report.Rmd</b><br/>(version 1)>];
+
+    B1d [label=<<b>data.csv</b><br/>(version 1)>];
+
+    edge [style=invis, weight=10];
+    B1 -> B1d //-> B2 -> B2d -> B3 -> B3d 
+  }
+
+  { rank=same; C1; B1; }
+
+  edge [
+    style=dashed
+  ]
+  C1 -> B1;
+
+  C1 -> B1d;
+  // C2 -> B2d;
+  // C3 -> B3d;
+}

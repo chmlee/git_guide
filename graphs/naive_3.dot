@@ -1,0 +1,72 @@
+digraph GitSnapshot {
+  newrank=true;
+  rankdir=TB;
+  nodesep=1.5; 
+  ranksep=0.5;
+  fontsize=35
+
+  node [
+    fontsize=30
+    width=1
+    height=1
+  ]
+
+  subgraph cluster_commits {
+    label="commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    edge [shape=oval]
+    C1 [label=<commit<br/>C1>];
+    C2 [label=<commit<br/>C2>];
+    C3 [label=<commit<br/>C3>];
+
+    C1 -> C2 [weight=10];
+    C2 -> C3 [weight=10];
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [
+      fontsize=25
+      shape=note
+    ]
+
+    B1  [label=<<b>report.Rmd</b><br/>(version 1)>];
+    B2  [label=<<b>report.Rmd</b><br/>(version 2)>];
+    B3  [label=<<b>report.Rmd</b><br/>(version 3)>];
+
+    B1d [label=<<b>data.csv</b><br/>(version 1)>];
+    B2d [label=<<b>data.csv</b><br/>(version 1)>];
+    B3d [label=<<b>data.csv</b><br/>(version 1)>];
+
+    B1 -> B1d -> B2 -> B2d -> B3 -> B3d [style=invis, weight=10];
+  }
+
+  { rank=same; C1; B1; }
+  { rank=same; C2; B2; }
+  { rank=same; C3; B3; }
+
+  edge [
+    style=dashed
+  ]
+  C1 -> B1;
+  C2 -> B2;
+  C3 -> B3;
+
+  // 2. Diagonal edges (constraint=false): This stops them from dragging nodes down
+  edge [
+    style=dashed, constraint=false
+  ]
+
+  C1 -> B1d;
+  C2 -> B2d;
+  C3 -> B3d;
+}

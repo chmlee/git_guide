@@ -1,0 +1,10 @@
+pre code span.va,
+code.sourceCode span.va {
+  color: #22863a !important;
+}
+
+/* deletions */
+pre code span.st,
+code.sourceCode span.st {
+  color: #d73a49 !important;
+}

@@ -1,0 +1,2317 @@
+---
+title: Collaborating on Data Analysis Project with Git
+format:
+  html:
+    css: ./style.css
+    grid:
+      margin-width: 250px
+    number-sections: true
+    reference-location: margin
+    toc: true
+highlight-style: atom-one
+---
+
+# Introduction
+
+The goal for this guide is to introduce version controlling with Git in the
+context of collaborative data analysis projects.
+
+The guide was initially a quick start guide for my Causal Inference group 
+project. Since I was the one who proposed we use Git for collaboration, I wanted
+to write a step-by-step guide to make the adoption easy. Turns out I grossly
+underestimated the difficulty of writing the guide, and couldn't complete it 
+before the project deadline. It has now evolved into a more comprehensive 
+introduction of Git.
+
+Why yet another Git tutorial, while the internet has no shortage of posts on
+the same topic? What makes this guide different?
+
+1. This guide contains crash courses on some fundamental programming/computer
+   concepts. Many Git tutorials assume a significant amount of knowledge on 
+   programming, and is not approachable for those early in their coding journey. 
+   A common approach is to simply instruct readers to copy the commands, paste 
+   them to the terminal, press `<Enter>`, and voilà, you get the desired result. 
+   But (1) you should *never* run random commands from the internet without 
+   understanding what exactly they do, and (2) you have to known them sooner or
+   later, so why not now?
+
+   Throughout the guide, you will see block in the following form:
+
+   ::: {.callout-tip collapse="true"}
+   # Crash Course Example
+
+   Hello there.
+   :::
+   in which  I provide gentle introductions of new concepts that are relevant 
+   to the topic. Click on the green tile bar to see the content.
+
+2. This guide visualizes Git's inner working. In addition to visualizing the
+   topology of Git branches (which many tutorials also do), this guide 
+   visualize the relation between different Git objects (mostly commits and 
+   blobs) to illustrate how Git works in a low level. While not strictly 
+   necessary to start using Git, I find having a mental model of how Git work 
+   helps distinguish similar Git operations.
+
+   This approach is inspired by 
+   [MIT's "The Missing Semester of Your CS Education"](https://missing.csail.mit.edu/2026/version-control/).
+   To find the best way to introduce Git, I have read numerous tutorials and 
+   blog posts to see how people approach the topic. Most of them jump right into
+   the terminal and start executing Git commands. MIT's lecture on Git took
+   a bottom-up approach, and started by explaining Git's *data model* on 
+   *blackboards* (\*chef's kiss\*). When Git commands were introduced in the
+   second half of the lecture, they were merely implementations of the 
+   operations to alter the data model introduced earlier. I'm convinced this is
+   the superior way to learn Git.
+
+3. This guide helps *me* understand Git better. I've used Git for years. I know
+   how to use simple Git commands. I memorize common Git commands. But it wasn't
+   until writing this guide that I realize how little I actually know about Git. 
+   This also serve as a learning opportunity.
+
+Similar to "The Missing Semester," the guide is split into two sections: in 
+Section 2 I provide a high level introduction of Git's data model. I identify
+several common problems programmers have while coding, and how Git solve them
+by visualizing a simplified Git's data model.[^note-graphs]. In Section 3 I
+introduce the actual Git command to make operations introduced in the previous
+section possible.
+
+[^note-graphs]: I spent *way* more time making the graphs than writing the text. 
+It's the main reason why I couldn't finish it on time. I hope it's freaking 
+worth it.
+
+# Why Git
+
+Git is a **version control system (VCS)** that help tracks changes made in text
+files. It is commonly used in programming to manage changes made in source code,
+but can also be applied to other file formats[^note-vim-application], such as 
+Markdown, CSV, etc. 
+
+[^note-vim-application]: In theory Git can also track changes made in non-text 
+files, such as compressed files (e.g. Microsoft Word documents) and binary 
+files (e.g. SQLite file), but dedicated VCS for these specialized file format is
+usually preferred over Git. The reason would be apparent later.
+
+## Version Control
+
+If you have worked on a non-trivial project involving multiple files that went 
+through several iterations, the following directory structure should look 
+familiar:
+
+```
+my-project/
+├── data/
+│   └── data.csv
+├── report.Rmd
+├── report-20250101.Rmd
+├── report-20250201.Rmd
+├── report-20250301.Rmd
+├── report-final.Rmd
+├── report-final-update-intro.Rmd
+├── report-final-version-2.Rmd
+├── report-final-version-3.Rmd
+└── report-final-version-4-final-final.Rmd
+```
+ 
+
+::: {.callout-tip collapse="true"}
+### Crash Course on Directory
+
+Another name for **directory** that people may be more familiar with is 
+"folder". While there *may be* some minor differences between the two[^note-folder]
+, the distinction is not important for the purpose for this tutorial. Most 
+technical documents use "directory," so that's the term I would stick to.
+
+[^note-folder]: Upon research some people have *strong* opinions on directory vs
+folder. Some Linux users really aren't helping breaking our stereotypes.
+
+Directories are usually represented in tree structures. The above example reads:
+
+- Directory `my-project/` has 10 children: 1 sub-directory `data/` and 9 files in 
+the form of `report.Rmd` and `report-xxx.Rmd`
+- Directory `data/` has exactly one child -- file `data.csv`.
+
+We say `my-project/` is the **working root directory** of this project. 
+Everything concering the project is inside this directory.
+
+Slashes (`/`) are added at the end of directories' names (`my-project/`, 
+`data/`) in the text representation above. This is done to distinguish between 
+a directory and a file. 
+
+We can also use `/` to specify the **path** of a file or a directory. The path
+for `report.Rmd` is `my-project/report.Rmd`, and the path for `data.csv` is 
+`my-project/data/data.csv`. 
+
+Note that in practice Windows use back-slashes (`\`) instead of `/`, so the 
+examples should be rewritten as `my-project\report.Rmd` and 
+`my-project\data\data.csv` if you are using Windows. In most cases Windows 
+should be able to understand both notations. MacOS and Linux use `/` natively, 
+and this is also what this tutorial use.
+
+There are three special paths:
+
+| notation | meaning               |
+| -        | ---                   |
+| `./`     | current directory     |
+| `../`    | parent directory      |
+| `/`      | system root directory |
+
+(On Windows they are `.\`, `..\` and `\` respectively, but as mentioned you can
+substitute `\` with `/` in most cases.)
+
+If you are located in `my-project/`, the **relative path** for 
+`report.Rmd` would be `./report.Rmd` -- starting from my current directory 
+`my-project/`, look for `report.Rmd`. Similarly, the relative path for `data.csv`
+would then be `./data/data.csv` -- starting from my current directory 
+`my-project/`, look into directory `data/`, then locate file `data.csv`.
+
+If you are located in `data/`, the relative path for `report.Rmd` would
+be `./../report.Rmd` -- starting from my current directory `data/`, go to its 
+parent directory `my-project/`, then locate file `report.Rmd`. `data.csv`, on
+the other hand, is much simpler -- `./data.csv`.
+
+You do not need to explicitly specify `./`. So `./report.Rmd` can be written
+simply as `report.Rmd`, and `./../report.Rmd` is equivalent to `../report.Rmd`.
+
+System root directory `/`, sometimes simplified as **root directory**, is the
+root directory of your system (duh!). Every file and directory on your system
+is a child or descendant of `/`. Paths starting from `/` are **absolute paths**. 
+Say `my-project/` is located at `/home/louis/Document/class/causal_inference`,
+the absolute path for `data.csv` would then be 
+`/home/louis/Document/class/causal_inference/my-project/data/data.csv`.
+
+Relative paths or absolute paths may be preferred depending on your use case.
+The rule of thumb is use relative path if it is project specific ("this file 
+reads data from a sibling directory"), and absolute path if it is system-wide 
+("use R version 4.5.1 on the system to run this script").
+
+---
+
+People used to graphical user interfaces (GUI) may find this unnecessarily 
+abstract. Why not just open File Explorer then point and click? 
+
+Firstly, it's easier for technical document writers to include a text 
+representation of the directory structure than taking screenshots of File 
+Explorer. Secondly, many tools only provide command line interfaces (CLI) -- you 
+type commands in a terminal -- and the arguments are expected to be text. While
+Git does provided basic graphical user interfaces, and there exist third-party 
+tools that provide more advances interfaces, we will start with CLI. 
+
+Understanding path and directory is crucial to programming and development, and
+messing up basic concepts can lead to irreversible consequences. My favorite
+example is `rm -rf /my-project` vs `rm -rf / my-project`. `rm -rf` deletes 
+*everything* is the path provided by the next argument. So the first command
+deletes everything in `/my-project`, while the second one delete everything in
+`/` (note the space between `/` and `my-project`!) which is... everything in
+*your system*!
+
+This exact mistake happen surprisingly often.
+
+It is also a reminder you should *never* blindly run commands found on the 
+internet or produced by AI.
+:::
+
+
+You are working on your report, and are instructed to submit your draft to your
+supervisor on the first day of each month. For each submission you append your 
+report name `report.Rmd` with dates (e.g. `report-20250101.Rmd`)
+
+In April you are ready to submit your report and name your latest iteration 
+`report-final.Rmd`. But your supervisor is not satisfied with your intro and
+asked you to make some major changes. You update your report, name this new 
+report `report-final-update-intro.Rmd` to indicate what you've change. But of
+course this is not the only changes you are asked to make. You ditched your
+previous naming scheme and give each iteration a version number, e.g. 
+`report-final-version-2.Rmd`, until you reach version 4 and
+name it `report-final-verions-4-final-final.Rmd`.
+
+This work flow is not optimal. First and foremost, you store multiple copies of
+the same file which is not only confusing but also taking many disk space.
+For each iteration you create a new copy of the report regardless of the amount
+of the changes. You may have only changed a few characters, still a 
+near-identical duplicate of the file needs to be created. It is also not obvious
+what the differences between each versions are. You *can* be disciplined and 
+enforce consistent naming schemes (`report-final-update-intro.Rmd`), or 
+maintain a changelog recording what has been changed between iterations 
+(`version 3: fixed x-axis in graph 4.1 and 4.2`) , but they add more overheads 
+and complexity to your workflow.
+
+Introducing **Git**, a piece of software to make versioning simple
+[^note-simple]. Instead of saving multiple versions of the same file, we save 
+*snapshots* of each iterations, also known as **commits**.
+
+[^note-simple]: Simple, not easy. While the underlying architecture may be simple, 
+(every git operation is either creating some objects or moving `HEAD`!) it has
+quite a learning curve and not an easy tool to master.
+
+Consider a todo list `todo.txt` that went through two iterations of changes
+
+:::: {.columns layout-ncol=3}
+::: {}
+Version 1:
+
+```txt
+grocery:
+  apple
+  banana
+```
+:::
+::: {}
+Version 2: 
+
+```txt
+grocery:
+   apple
+   banana
+   orange
+```
+
+add `orange` to list `grocery`
+:::
+::: {}
+Version 3: 
+
+```txt
+grocery:
+  banana
+  orange
+clean:
+  dishes
+  laundry
+```
+
+remove `apple` from `grocery`, and add a new list `clean`
+:::
+::::
+
+With our primitive manual version control system, we would store three versions
+of the todo list:
+
+```txt
+todo/
+├── todo-version-1.txt 
+├── todo-version-2.txt 
+└── todo-version-3.txt 
+```
+
+With Git, only one todo list is visible to user at a time, Every time we make 
+changes to `todo.txt` and commit the changes, Git takes a snapshot of the file 
+content and save it in a special storage[^note-storage]. 
+
+[^note-storage]: We'll explain what exactly this "storage" is. For now, just
+think of it as a special place where Git stores everything.
+
+```txt
+todo/
+└── todo.txt 
+```
+
+Let's go through a very simple Git workflow.
+
+
+First, we create `todo.txt`, then add `apple` and `banana` to `grocery` list.
+Then we commit the changes with Git, and get commit C1. The commit points to 
+version 1 of the file in storage.
+
+
+```{dot}
+{{< include graphs/simple_1.dot >}}
+```
+
+Next we add `orange` to list `grocery`. We iterate over commit C1 and
+get commit C2, which points to verions 2 of the todo list in the
+storage.
+
+```{dot}
+{{< include graphs/simple_2.dot >}}
+```
+
+Finally, we remove `apple` from `grocery`, and add a new list `clean`. Again,
+we iterate over commit C2 and get commit C3, which it points to version 3 of 
+the todo list.
+
+```{dot}
+{{< include graphs/simple_3.dot >}}
+```
+
+
+Think of Git as a time machine. We can freely travel between commits, and 
+depending on what commit we travel to, Git points to the corresponding version 
+of `todo.txt`.
+
+If you travel to C1 and open `todo.txt`, it shows: 
+
+```{dot}
+{{< include graphs/travel_1.dot >}}
+```
+
+If you travel to C2 and open `todo.txt`, it shows:
+
+```{dot}
+{{< include graphs/travel_2.dot >}}
+```
+
+If you travel to C3 and open `todo.txt`, it shows
+
+```{dot}
+{{< include graphs/travel_3.dot >}}
+```
+
+At any given commit, you see exactly one `todo.txt`, but the content changes
+accordingly.
+
+While Git *does* create new copies of `todo.txt` for each snapshot, it also
+compress them so that it take up less disk space. 
+
+Furthermore, Git doesn't always create new copies for each snapshot. To 
+illustrate this, let's revisit our `my-project` example. A naive version control 
+system would create new `report.Rmd` and `data.csv` for each commit:
+
+```{dot}
+{{< include graphs/naive_0.dot >}}
+```
+
+::: {.callout-note collapse="true"}
+## View Full Git History
+
+1. First we commit `report.Rmd` (version 1) and `data.csv` (version 1) in commit
+C1.
+
+```{dot}
+{{< include graphs/naive_1.dot >}}
+```
+
+2. Next we commit the updated `report.Rmd` (version 2) to C2, as well as 
+`data.csv`. Note since no changes are made to `data.csv`, it is still at 
+version 1.
+
+```{dot}
+{{< include graphs/naive_2.dot >}}
+```
+
+3. Finally, for commit C3, we committed the updated `report.Rmd` (version 3) and
+the unchanged `data.csv` (version 1).
+
+```{dot}
+{{< include graphs/naive_3.dot >}}
+```
+:::
+
+(Review the above Git history to see how commits are made step-by-step)
+
+Each commit points to two files in the storage, `report.Rmd` and `data.csv`.
+Recall that in this example, all changes are exclusively made in `report.Rmd`, 
+while `data.csv` remained unchanged (as raw data should). We are storing
+three *identical* `data.csv` that hasn't been changed since commit C1!
+
+To fix this, Git simply keep one copy of `data.csv` in it's storage, and
+points all three commits to this `data.csv`:
+
+```{dot}
+{{< include graphs/snapshot_0.dot >}}
+```
+
+::: {.callout-note collapse="true"}
+# View Full Git History
+
+1. First we commit `report.Rmd` (version 1) and `data.csv` (version 1) in commit
+C1.
+
+```{dot}
+{{< include graphs/snapshot_1.dot >}}
+```
+
+2. Next we commit the updated `report.Rmd` (version 2) to C2. Note that since
+no changes are made to `data.csv`, instead of creating an identical `data.csv`,
+commit C2 simply points to the one that commit C1 created.
+
+```{dot}
+{{< include graphs/snapshot_2.dot >}}
+```
+
+3. Finally, for commit C3, we committed the updated `report.Rmd` (version 3),
+and points to the same `data.csv` commit C1 created.
+
+
+```{dot}
+{{< include graphs/snapshot_3.dot >}}
+```
+:::
+
+Let's hop back to our time machine and see how it behave this time.
+
+If we travel to commit C1, we see version 1 of `Report.Rmd` and `data.csv`.
+
+```{dot}
+{{< include graphs/snapshot_travel_1.dot >}}
+```
+
+When we travel to commit C2, we see version 2 of `report.Rmd`, but version 1 of
+`data.csv`.
+
+```{dot}
+{{< include graphs/snapshot_travel_2.dot >}}
+```
+When we travel to commit C3, we see version 3 of `report.Rmd`, and version 1 of
+`data.csv`.
+
+```{dot}
+{{< include graphs/snapshot_travel_3.dot >}}
+```
+
+This is known as **immutable snapshots**. While users do mutate the files, Git 
+never mutate files in its storage. If Git detect changes made to the files, it
+add the new file to the storage. If not, it simply points to the old one.
+
+## Diffing
+
+Immutable snapshots makes comparing commits straightforward. We often want to 
+track the changes made to a file throughout its development phases, and to do 
+so Git can simply compare the files each commit points to and summarize the
+changes. This is known as **diffing**.
+
+Consider the `todo.txt` example. Comparing commit C3 to C1 is simply comparing 
+`todo.txt` version 3 to version 1.
+
+```{dot}
+{{< include graphs/diff_todo.dot >}}
+```
+
+Git will run a special programme to compare the two files, and calculate the
+steps to turn `todo.txt` from version 1 to version 3. Eventually Git would 
+produce a diff that looks like:
+
+```diff
+ grocery:
+-  apple
+   banana
++  orange
++clean:
++  dishes
++  laundry
+```
+
+Lines that were removed are denoted with minus sign `-` and those that were 
+added are prefixed with plus sign `+`. The diff above shows that we remove the
+line containing `apple`, and add the line with `orange`, as well as the 3 lines 
+involving `clean`.
+
+Note that file diffing is line-based -- a change operating is either removing 
+or adding a line. There is no "change line $i$ from $A$ to $B$". 
+
+Say we change `banana` to `banaan`, our diff would look like:
+
+```diff
+ grocery:
+   apple
+-  banana
++  banaan
+   orange
+ clean:
+   dishes
+   laundry
+```
+
+Git couldn't tell we swapped the last two characters for `banana`. All it can 
+say is we deleted the line containing `banana`, and added another line 
+containing `banaan`.
+
+Things get more interesting when commits contain more than one files. Let's 
+revisit `my-project` example. To compare commit C3 to C1, Git first look at 
+`report.Rmd` version 3 and version 1, then calculate the difference as usual. 
+Next it move on to `data.csv`, and found both commits points to the same file 
+in the storage. No diffing is required for this file!
+
+```{dot}
+{{< include graphs/diff_report.dot >}}
+```
+
+## Feature branches
+
+Code should be organized based on their functionalities. Instead of writing 
+everything in one single file, it is a good practice to split them into smaller
+chucks of code across several files. It’s much easier to understand what four 
+500-line sections of code are doing than to read through the entire 2,000 lines 
+at once.
+
+Consider the following data analysis project.
+
+```
+my-project/
+├── data/
+│   └── survey.csv 
+├── results/
+│   └── clean_survery.csv
+├── clean.R
+├── model.R
+└── report.Rmd
+```
+
+This structure separates codes according to the different phases of data 
+pipeline:
+
+1. **Clean data**: `clean.R` reads and cleans raw data `survery.csv`, and 
+generate a new dataset `clean_survery.csv`.
+2. **Build models**: `model.R` reads `clean_survery.csv` and perform 
+statistical analysis.
+3. **Present findings**: `report.Rmd` contains the full report where we 
+introduce are analysis method and import models from `model.R`.
+
+Assuming our workflow is perfectly linear, that is, for each iteration, we only
+add new files and never revise what we have written. Our Git history would look
+like:
+
+1. We start with only the raw dataset `survery.csv` in commit C1.
+
+```{dot}
+{{< include graphs/ideal_1.dot >}}
+```
+
+2. We write `clean.R` that takes `survey.csv` as an input, clean it, and
+output `clean_survey.R`. Commit C2 points to the newly added `clean.R` and
+`clean_survey.R`, as well as `survey.csv` from the previous commit.
+
+```{dot}
+{{< include graphs/ideal_2.dot >}}
+```
+
+3. We build our models in `model.R`.
+
+```{dot}
+{{< include graphs/ideal_3.dot >}}
+```
+
+
+
+4. Next, we build our models in `models.R` where we take `clean_survey.csv` as
+an input. Commit C3 now points to the new file `models.R` and all the files from
+previous commits.
+
+```{dot}
+{{< include graphs/ideal_4.dot >}}
+```
+
+5. Finally, we work on our `Report.Rmd` where we explain our methods and import 
+models from `models.R` to illustrate our analysis result. Commit C4 points to
+the new `Report.Rmd` and all files from previous commit.
+
+```{dot}
+{{< include graphs/ideal_5.dot >}}
+```
+
+But this is rarely the case. We sometimes go back and forth the pipeline, and
+make changes to files that were previously committed.
+
+A more realistic workflow may look like this:
+
+
+```{dot}
+{{< include graphs/real_0.dot >}}
+```
+
+::: {.callout-note collapse=true}
+# View Full Git History
+1. We start with `survey.csv`
+
+```{dot}
+{{< include graphs/real_1.dot >}}
+```
+
+2. Next we clean the raw data with `clean.R` and output `clean_survey.csv`.
+
+```{dot}
+{{< include graphs/real_2.dot >}}
+```
+
+3. We build are models in `model.R`.
+
+```{dot}
+{{< include graphs/real_3.dot >}}
+```
+
+4. For `report.Rmd`, we first specify our methods, then import models from 
+`model.R`. 
+
+But wait! The model shows the average age for student `mean(age)` to
+be `95.3`. Something is not right. Upon inspection we discover some missing 
+values in the raw data were coded `999` instead of `NA`, and we failed to 
+convert them properly during cleaning. We have to update `clean.R` and 
+regenerate `clean_survey.csv`.
+
+First we save what we have for `report.R` -- the models we imported may be 
+incorrect, but we don't want to toss away what we have wrote.
+
+```{dot}
+{{< include graphs/real_4.dot >}}
+```
+
+Then we make the necessary changes to `clean.R` and regenerate 
+`clean_survey.csv`. Since both files are modified, commit C5 no longer points 
+to version 1 of `clean.R` and `clean_survey.csv`, but the updated version. 
+
+```{dot}
+{{< include graphs/real_5.dot >}}
+```
+
+5. Before jumping back to `report.Rmd`, we decide to try a new model. Constant 
+correlation doesn't seem to be a realistic assumption, so we test more flexible 
+structures, and decide to settle with an autoregressive one. We update
+`model.R`, and commit the changes.
+
+```{dot}
+{{< include graphs/real_6.dot >}}
+```
+
+6. Finally, we complete `report.Rmd`
+
+```{dot}
+{{< include graphs/real_7.dot >}}
+```
+:::
+
+If we look closely what files are changes in each commit, we notice that only
+a few are changed at a time. And thanks to our modularized codebase, these 
+changes corresponds to one of three themes: data cleaning, model building and
+writing report.
+
+```{dot}
+{{< include graphs/real_red.dot >}}
+```
+
+Can we also modularize our git workflow by categorizing commits based on their
+functionalities?
+
+To do so, we need to create **git branches**. When you first create a Git 
+project, also known as a **Git repository** (or **repor** for short), all our
+commits live in the default branch - the `main` branch. To modularize our 
+commits like we do with the code files, we have to create new branches and 
+diverge from the `main` branch. All our new changes would be isolated in the
+new branches without effecting `main`. We merge the changes from the new 
+branches back to `main` once we feel ready. 
+
+[^note-main]: You might see people referring to the first branch as the `master`
+    branch in other tutorials. The default name in Git is `master` by the time
+    of writing, but in recent years some consider the word offensive and [call 
+    for the name to be changed](https://public-inbox.org/git/CAOAHyQwyXC1Z3v7BZAC+Bq6JBaM7FvBenA-1fcqeDV==apdWDg@mail.gmail.com/T/#u).
+    In 2020, GitHub [renamed the default name to `main`](https://github.com/github/renaming), 
+    and [Git would follow suit starting from version 3.0](https://lore.kernel.org/lkml/xmqqh5usmvsd.fsf@gitster.g/),
+    which is expected to be released at the end of 2026.
+    While I find the entire argument unnecessary, this is not a hill I want to 
+    die on. As someone working on his Main Degree in Statistic, my time is 
+    better spent on maining my programming skills. `main` won, so let's use it.
+
+If commits living in the same branch can be seen as snapshots of a timeline, 
+then different git branches are like parallel universes reflecting alternative 
+states of that timeline. All branches reflect a alternative version of the 
+`main` timeline, each containing slightly different changes, usually grouped
+by a common theme.
+
+Similar to files, our commits can also be classified into three main themes:
+report writing, data cleaning and model building. Therefore we create 3 
+branches: `report writing`, `data cleaning` and `model building`, and our 
+Git workflow may look something like:
+a
+
+```{dot}
+1
+{{< include graphs/branch_0.dot >}}
+```
+
+::: {.callout-note collapse=false}
+# View Full Git History
+
+1. Commit `M1`
+
+   we create commit `M1` where we commit raw data `survey.csv` to the default 
+   branch `main`.
+
+```{dot}
+{{< include graphs/branch_1_m1.dot >}}
+```
+
+2. Commit `R1`
+
+   Next we create a new branch `report-writing`, where we work on our 
+   `report.Rmd`. Future commits that contains changes to `report.Rmd` should be
+   in this branch.
+   
+   We create `report.Rmd`, specify our methods in the report, and commit it to 
+   `R1`.
+
+```{dot}
+{{< include graphs/branch_2_r1.dot >}}
+```
+
+3. Commit `C1`
+
+   To clean our raw data, we create a new branch `data-cleaning`. Note that the 
+   new branch is forked from `main` and not `report-writing`, since data 
+   cleaning doesn't rely on `report.Rmd`.
+   
+   We write `clean.R`, generate `clean_survey.csv`, and commit both to `C1`.
+
+```{dot}
+{{< include graphs/branch_3_c1.dot >}}
+```
+
+4. Commit `B1`
+
+   We create a new branch `model-buidling` to save model-related commits. Since
+   model building depends on `clean_survey.csv`, branch `model-buidling` is 
+   branched out from `data-cleaning`.
+
+```{dot}
+{{< include graphs/branch_4_b1.dot >}}
+```
+
+5. Commit `C2`
+
+   We found out the data was not properly cleaned, and has to update `clean.R`
+   and regenerate `clean_survey.csv`. 
+
+   To do so, we first go back to branch `data-cleaning` (recall that this 
+   branch was created specifically to contain changes regarding data cleaning),
+   make changes to `clean.R` and regenerate `clean_survey.csv`, and commit them
+   to commit `C2`. 
+
+   Note that since `C2` evolved from `C1`, it doesn't not point to `model.R` --
+   the file lives in a parallel universe.
+
+```{dot}
+{{< include graphs/branch_5_c2.dot >}}
+```
+
+6. Commit `B2`
+
+   Now that we updated `clean.R` and `clean_survey.csv` in branch 
+   `data-cleaning`, we need the branch `model-building` to be aware of such
+   changes so that we can use the updated data in our models.
+
+   To do so, we merge branch `data-cleaning` to `model-building`, and create
+   a new commit `B2`. `B2` not points to version 2 of `clean.R` and 
+   `clean_survey.csv` instead of version 1.
+
+```{dot}
+{{< include graphs/branch_6_b2.dot >}}
+```
+
+7. Commit `B3`
+
+   We continue to work on our statistical models. We made some changes to 
+   `model.R`, and commit the second version of `model.R` to commit `B3`.
+
+```{dot}
+{{< include graphs/branch_7_b3.dot >}}
+```
+
+8. Commit `R2`
+
+   Once we finalized our model, we want to make our report aware of the changes
+   so that we can import the models to the report. We do so by
+
+```{dot}
+digraph GitSnapshot {
+  layout=neato;
+  scale=1.25
+  splines=ortho
+
+  node [fontsize=30]
+
+  node [shape=plaintext]
+  Div_1 [pos="0,11!" style=invis]
+  Div_2 [pos="0,-1!" style=invis]
+  Div_1 -> Div_2 [style="solid" arrowhead=none penwidth=1]
+  Label_C [pos="-1,10!" label="COMMIT"]
+  Label_S [pos="1,10!"  label="STORAGE"]
+
+  T_c_man [ pos="-1,9!" label="main" ]
+  T_c_rep [ pos="-3,9!" label="report-\nwriting" ]
+  T_c_cln [ pos="-5,9!" label="data-\ncleaning" ]
+  T_c_mod [ pos="-7,9!" label="model-\nbuilding" ]
+
+  T_f_man [ pos="1,9!" label="data" ]
+  T_f_rep [ pos="3,9!" label="report\nwriting" ]
+  T_f_cln [ pos="5,9!" label="data\ncleaning" ]
+  T_f_mod [ pos="7,9!" label="model\nbuilding"]
+
+  node [shape=note ]
+  F_sur_1 [pos="1,8!" label = "survery.csv\n(version 1)" ]
+  F_rep_1 [pos="3,7!" label = "report.Rmd\n(version 1)"]
+  F_clr_1 [pos="5,6!" label = "clean.R\n(versoin 1)"]
+  F_cls_1 [pos="5,5!" label = "clean_survery.csv\n(version 1)"]
+  F_mod_1 [pos="7,4!" label = "model.R\n(version 1)"]
+  F_clr_2 [pos="5,3!" label = "clean.R\n(versoin 2)"]
+  F_cls_2 [pos="5,2!" label = "clean_survery.csv\n(version 2)"]
+  F_mod_2 [pos="7,1!" label = "model.R\n(version 2)" color=red fontcolor=red]
+  // F_rep_2 [pos="3,0!" label = "report.Rmd\n(version 2)" ];
+
+  node [shape=circle]
+  M1 [pos="-1,8!"]
+  // M2 [pos="-1,0!"]
+  //
+  R1 [pos="-3,7!"]
+  // R2 [pos="-3,1!"]
+  //
+  C1 [pos="-5,7!"]
+  C2 [pos="-5,5!"]
+  //
+  B1 [pos="-7,6!"]
+  B2 [pos="-7,4!"]
+  B3 [pos="-7,2!" color=red fontcolor=red]
+
+  edge [penwidth=3]
+
+  M1 -> R1
+  M1 -> C1
+  C1 -> B1
+  C1 -> C2
+  {C2, B1} -> B2
+  B2 -> B3 [color=red]
+  // {R1, B3} -> R2
+  // {M1, R2} -> M2
+
+  edge [style=dashed color=gray penwidth=1]
+  M1 -> F_sur_1
+  R1 -> {F_sur_1, F_rep_1}
+  C1 -> {F_sur_1, F_clr_1, F_cls_1}
+  B1 -> {F_sur_1, F_clr_1, F_cls_1, F_mod_1}
+  C2 -> {F_sur_1, F_clr_2, F_cls_2}
+  B2 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_1}
+  B3 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_2} [color=red]
+  // R2 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_2 F_rep_2}
+  // M2 -> {F_sur_1, F_clr_2, F_cls_2, F_mod_2 F_rep_2}
+}
+```
+
+
+9. Commit `M2`
+
+
+:::
+
+Before we proceed with our multi-branch workflow, we first reflect on our former
+everything-in-one-branch workflow and can make several observations:
+
+1. The raw data `survey.csv` never changes
+2. During the model building phase, `model.R` doesn't care about the 
+  implementation details in `clean.R` -- it doesn't directly import code from
+  `clear.R`, but only reads the generated data `clean_survery.csv`.
+3. `Report.Rmd` does import from `model.R`, but there are many parts of the 
+   report that can be worked on independently. We could (and should) work on
+   the method part early on, and import the final version of `model.R` at the 
+   end.
+ 
+
+
+```{dot}
+{{< include graphs/branch_old.dot >}}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+
+2. Build models, but...
+3. **Oopsie**, one of our models shows `mean(age)` of a school is `88.5`.
+That doesn't look right. Upon inspection, we notice missing `age` has been coded
+`999` in `survery.csv`. We have to **revise** `clean.R` and **regenerate** 
+`clean_survery` with missing value properly converted.
+4. We may also need to update `models.R`
+5. Present findings, but...
+6. **Oopsie**, based on the model results, school funding has no effects on
+student performance, which is counter-intuitive. After examining our models, 
+we discovered the model was using the raw dataset `data = survery.csv` instead
+of the cleaned dataset `clean_survery.csv`. We have to **update** `models.R`.
+7. Present Findings again
+
+The corresponding Git history is as follows:
+
+```{dot}
+digraph GitSnapshot {
+  newrank=true;
+  rankdir=TB;
+  nodesep=3; 
+  ranksep=0.5;
+  fontsize=35
+
+  node [
+    fontsize=30
+    width=1
+    height=1
+  ]
+
+  subgraph cluster_commits {
+    label="commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [ shape = oval ]
+    C0 [ label = "commit\nstart" ]
+    C1 [ label = "commit\nclean_data" ]
+    C2 [ label = "commit\nbuild_model" ]
+    C3 [ label = "commit\nclean_data_2" ]
+    C4 [ label = "commit\nbuild_model_2" ]
+    C5 [ label = "commit\npresent_finding" ]
+    C6 [ label = "commit\nbuild_model_3" ]
+    C7 [ label = "commit\npresent_finding_2" ]
+
+    C0 -> C1 -> C2 -> C3 -> C4 -> C5 -> C6 -> C7 [weight=10];
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [
+      fontsize=25
+      shape=note
+    ]
+
+    B0 [ label = "survery.csv\n(version-1)" ]
+    B1 [ label = "clean.R\n(version-1)" ];
+    B2 [ label = "clean_survery.csv\n(version-1)" ];
+    B3 [ label = "models.R\n(version-1)" ];
+    B4 [ label = "clean.R\n(version-2)" ];
+    B5 [ label = "clean_survey.csv\n(version-2)" ]
+    B6 [ label = "models.R\n(version-2)" ]
+    B7 [ label = "report.Rmd\n(version-1)" ]
+    B8 [ label = "models.R\n(version-3)" ]
+    B9 [ label = "report.Rmd\n(version-2)" ]
+
+    edge [ style = invis, weight = 10 ];
+    B0 -> B1 -> B2 -> B3 -> B4 -> B5 -> B6 -> B7 -> B8 -> B9
+  }
+
+  { rank=same; C0; B0; }
+  { rank=same; C1; B1; }
+  { rank=same; C2; B3; }
+  { rank=same; C3; B4; }
+  { rank=same; C4; B6; }
+  { rank=same; C5; B7; }
+  { rank=same; C6; B8; }
+  { rank=same; C7; B9; }
+
+   edge [ style = dashed, color = gray, constraint = false ]
+   C2 -> { B1, B2 } 
+   C3 -> { B3 }
+   C4 -> { B4, B5 }
+   C5 -> { B4, B5, B6 }
+   C6 -> { B4, B5, B7 }
+   C7 -> { B4, B5, B8 }
+
+  edge [ style = dashed, color = red, penwidth = 3 ]
+  C0 -> { B0 }
+  C1 -> { B1, B2 }
+  C2 -> { B3 }
+  C3 -> { B4, B5 }
+  C4 -> { B6 }
+  C5 -> { B7 }
+  C6 -> { B8 }
+  C7 -> { B9 }
+}
+```
+[^note-missing-edges]
+
+[^note-missing-edges]: There should be gray edges linking all subsequent commits
+to `survery.csv`, but it'll make the graph even more complex and less 
+comprehensible.
+
+If we focus on what files have been introduced/modified, we get the following
+table, where `v` indicates a file has been changed, and `_` implies no changes
+are made to the file.
+
+| commit            | `survery.csv` | `clean.R` | `clean_survery.csv` | `models.R` | `report.Rmd` |
+| --- | --- | --- | --- | --- | --- |
+| start             | v             | _         | _                   | _          | _            |
+| clean_data        | _             | v         | v                   | _          | _            |
+| build_model       | _             | _         | _                   | v          | _            |
+| clean_data_2      | _             | v         | v                   | _          | _            |
+| build_model_2     | _             | _         | _                   | v          | _            |
+| present_finding   | _             | _         | _                   | _          | v            |
+| build_model_3     | _             | _         | _                   | v          | _            |
+| present_finding_2 | _             | _         | _                   | _          | v            |
+
+Beside the first commit, each commit corresponds to a change in one stage of 
+the analysis pipeline. In particular, commits fall into three categories:
+
+- updating the data cleaning step (`clean.R`) and regenerating the cleaned 
+dataset (`clean_survey.csv`),
+- modifying the modeling script (`models.R`), or
+- revising the report (`report.Rmd`).
+
+```{dot}
+digraph GitSnapshot {
+  newrank=true;
+  rankdir=TB;
+  nodesep=3; 
+  ranksep=0.5;
+  fontsize=35
+
+  node [
+    fontsize=30
+    width=1
+    height=1
+  ]
+
+  subgraph cluster_commits {
+    label="commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [ shape = oval ]
+    C0 [ label = "commit\nstart",                                            ]
+    C1 [ label = "commit\nclean_data",
+         style = filled, fillcolor = lightblue]
+    C2 [ label = "commit\nbuild_model",
+         style = filled, fillcolor = lightgreen]
+    C3 [ label = "commit\nclean_data_2",
+         style = filled, fillcolor = lightblue]
+    C4 [ label = "commit\nbuild_model_2",
+         style = filled, fillcolor = lightgreen]
+    C5 [ label = "commit\npresent_finding",
+         style = filled, fillcolor = orange]
+    C6 [ label = "commit\nbuild_model_3",
+         style = filled, fillcolor = lightgreen]
+    C7 [ label = "commit\npresent_finding_2",
+         style = filled, fillcolor = orange]
+
+    C0 -> C1 -> C2 -> C3 -> C4 -> C5 -> C6 -> C7 [weight=10];
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [
+      fontsize=25
+      shape=note
+    ]
+
+    B0 [ label = "survery.csv\n(version-1)" ];
+    B1 [ label = "clean.R\n(version-1)" ];
+    B2 [ label = "clean_survery.csv\n(version-1)" ];
+    B3 [ label = "models.R\n(version-1)" ];
+    B4 [ label = "clean.R\n(version-2)" ];
+    B5 [ label = "clean_survey.csv\n(version-2)" ];
+    B6 [ label = "models.R\n(version-2)" ]
+    B7 [ label = "report.Rmd\n(version-1)" ]
+    B8 [ label = "models.R\n(version-3)" ]
+    B9 [ label = "report.Rmd\n(version-2)" ]
+
+    edge [ style = invis, weight = 10 ];
+    B0 -> B1 -> B2 -> B3 -> B4 -> B5 -> B6 -> B7 -> B8 -> B9
+  }
+
+  { rank=same; C0; B0; }
+  { rank=same; C1; B1; }
+  { rank=same; C2; B3; }
+  { rank=same; C3; B4; }
+  { rank=same; C4; B6; }
+  { rank=same; C5; B7; }
+  { rank=same; C6; B8; }
+  { rank=same; C7; B9; }
+
+   edge [ style = dashed, color = gray, constraint = false ]
+   C2 -> { B1, B2 } 
+   C3 -> { B3 }
+   C4 -> { B4, B5 }
+   C5 -> { B4, B5, B6 }
+   C6 -> { B4, B5, B7 }
+   C7 -> { B4, B5, B8 }
+
+  edge [ style = dashed, color = red, penwidth = 3 ]
+  C0 -> { B0 }
+  C1 -> { B1, B2 }
+  C2 -> { B3 }
+  C3 -> { B4, B5 }
+  C4 -> { B6 }
+  C5 -> { B7 }
+  C6 -> { B8 }
+  C7 -> { B9 }
+}
+```
+
+```{dot}
+digraph GitSnapshot {
+  newrank=true;
+  rankdir=TB;
+  nodesep=4; 
+  ranksep=0.5;
+  fontsize=35
+
+  node [
+    fontsize=30
+    width=1
+    height=1
+  ]
+
+  subgraph cluster_report {
+    label="report commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [ shape = oval ]
+    RC0 [ label = "commit\nstart",
+          shape = point, width = 0.01 ]
+    RC1 [ label = "commit\nclean_data",
+          shape = point, width = 0.01 ]
+    RC2 [ label = "commit\nbuild_model",
+          shape = point, width = 0.01 ]
+    RC3 [ label = "commit\nclean_data_2",
+          shape = point, width = 0.01 ]
+    RC4 [ label = "commit\nbuild_model_2",
+          shape = point, width = 0.01 ]
+    RC5 [ label = "commit\npresent_finding",
+         style = filled, fillcolor = orange]
+    RC6 [ label = "commit\nbuild_model_3",
+          shape = point, width = 0.01 ]
+    RC7 [ label = "commit\npresent_finding_2",
+         style = filled, fillcolor = orange]
+
+    edge [ weight = 10 ]
+    RC4 -> RC5
+    RC6 -> RC7
+
+    edge [ arrowhead = none ]
+    // RC0 -> RC1 -> RC2 -> RC3 -> RC4
+    RC5 -> RC6
+  }
+
+  subgraph cluster_models {
+    label="models commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [ shape = oval ]
+    MC0 [ label = "commit\nstart",
+          shape = point, width = 0.01 ]
+    MC1 [ label = "commit\nclean_data",
+          shape = point, width = 0.01 ]
+    MC2 [ label = "commit\nbuild_model",
+         style = filled, fillcolor = lightgreen]
+    MC3 [ label = "commit\nclean_data_2",
+          shape = point, width = 0.01 ]
+    MC4 [ label = "commit\nbuild_model_2",
+         style = filled, fillcolor = lightgreen]
+    MC5 [ label = "commit\npresent_finding",
+          shape = point, width = 0.01 ]
+    MC6 [ label = "commit\nbuild_model_3",
+         style = filled, fillcolor = lightgreen]
+    MC7 [ label = "commit\npresent_finding_2",
+          shape = point, width = 0.01 ]
+
+    edge [ weight = 10 ]
+    MC1 -> MC2 
+    MC3 -> MC4 
+    MC5 -> MC6
+
+    edge [ arrowhead = none ]
+    // MC0 -> MC1
+    MC2 -> MC3
+    MC4 -> MC5
+    MC6 -> MC7
+  }
+
+  subgraph cluster_clean {
+    label="clean commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [ shape = oval ]
+    CC0 [ label = "commit\nstart" ]
+    CC1 [ label = "commit\nclean_data",
+         style = filled, fillcolor = lightblue]
+    CC2 [ label = "commit\nbuild_model",
+         shape = point, width = 0.01 ]
+    CC3 [ label = "commit\nclean_data_2",
+         style = filled, fillcolor = lightblue]
+    CC4 [ label = "commit\nbuild_model_2",
+         shape = point, width = 0.01 ]
+    CC5 [ label = "commit\npresent_finding",
+         shape = point, width = 0.01 ]
+    CC6 [ label = "commit\nbuild_model_3",
+         shape = point, width = 0.01 ]
+    CC7 [ label = "commit\npresent_finding_2",
+         shape = point, width = 0.01 ]
+
+    edge [ weight = 10 ]
+    CC0 -> CC1 
+    CC2 -> CC3
+
+    edge [ arrowhead = none ]
+    CC1 -> CC2
+    CC3 -> CC4 -> CC5 -> CC6 -> CC7
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    node [
+      fontsize=25
+      shape=note
+    ]
+
+    B0 [ label = "survery.csv\n(version-1)" ]
+    B1 [ label = "clean.R\n(version-1)" ];
+    B2 [ label = "clean_survery.csv\n(version-1)" ];
+    B3 [ label = "models.R\n(version-1)" ];
+    B4 [ label = "clean.R\n(version-2)" ];
+    B5 [ label = "clean_survey.csv\n(version-2)" ]
+    B6 [ label = "models.R\n(version-2)" ]
+    B7 [ label = "report.Rmd\n(version-1)" ]
+    B8 [ label = "models.R\n(version-3)" ]
+    B9 [ label = "report.Rmd\n(version-2)" ]
+
+    edge [ style = invis, weight = 10 ];
+    B0 -> B1 -> B2 -> B3 -> B4 -> B5 -> B6 -> B7 -> B8 -> B9
+  }
+
+  { rank=same; CC0; MC0; RC0; B0; }
+  { rank=same; CC1; MC1; RC1; B1; }
+  { rank=same; CC2; MC2; RC2; B3; }
+  { rank=same; CC3; MC3; RC3; B4; }
+  { rank=same; CC4; MC4; RC4; B6; }
+  { rank=same; CC5; MC5; RC5; B7; }
+  { rank=same; CC6; MC6; RC6; B8; }
+  { rank=same; CC7; MC7; RC7; B9; }
+
+  // CC1 -> MC1 -> RC1 -> B1 [ style = invis, weight = 100 ]
+
+  // edge [ style = dashed, color = gray, constraint = false ]
+  // C2 -> { B1, B2 } 
+  // C3 -> { B3 }
+  // C4 -> { B4, B5 }
+  // C5 -> { B4, B5, B6 }
+  // C6 -> { B4, B5, B7 }
+  // C7 -> { B4, B5, B8 }
+
+  edge [ style = dashed, color = red, penwidth = 3, constraint = false, weight = 0]
+  CC0 -> { B0 }
+  CC1 -> { B1, B2 }
+  // CC2 -> { B3 }
+  CC3 -> { B4, B5 }
+  // CC4 -> { B6 }
+  // CC5 -> { B7 }
+  // CC6 -> { B8 }
+  // CC7 -> { B9 }
+  //
+  // MC0 -> { B0 }
+  // MC1 -> { B1, B2 }
+  MC2 -> { B3 }
+  // MC3 -> { B4, B5 }
+  MC4 -> { B6 }
+  // MC5 -> { B7 }
+  MC6 -> { B8 }
+  // MC7 -> { B9 }
+
+  // RC0 -> { B0 }
+  // RC1 -> { B1, B2 }
+  // RC2 -> { B3 }
+  // RC3 -> { B4, B5 }
+  // RC4 -> { B6 }
+  RC5 -> { B7 }
+  // RC6 -> { B8 }
+  RC7 -> { B9 }
+
+  edge [ constrinat = false, arrowhead = false, color = black, penwidth = 1, style = solid ]
+  CC1 -> MC1
+  MC4 -> RC4
+
+
+
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{dot}
+digraph {
+  ranksep = 1;
+  nodesep = 0.4;
+  newrank = true;
+  subgraph cluster_commits {
+    label="commits";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+
+    clean  [ label = "Clean data"] 
+    model  [ label = "Build models"] 
+    report [ label = "Present findings"] 
+
+    clean -> model -> report [ weight = 100 ]
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=30;
+    ranksep=0.25
+
+    node [ shape = note, group = "files" ]
+    f_clean          [ label = "clean.R" ]
+    f_clean_survery  [ label = "clean_survery.csv" ]
+    f_model          [ label = "models.R" ]
+    f_report         [ label = "report.Rmd" ]
+
+    edge [ style = invis, weight = 100 ];
+    f_model -> f_clean -> f_clean_survery -> f_report
+  }
+ 
+
+  {rank = same; clean; f_clean} 
+  // {rank = same; model; f_model} 
+  {rank = same; report; f_report}
+  edge [ style=dashed ]
+  // clean  -> f_clean;
+  // clean  -> f_clean_survery
+  // model  -> { f_clean, f_clean_survery, f_model }
+  // report -> { f_clean, f_clean_survery, f_model, f_report}
+
+}
+```
+
+```{dot}
+digraph {
+  rankdir = TD;
+  newrank = true;
+  subgraph cluster_commits {
+    label="commit";
+    style="rounded";
+    color="#111111";
+    penwidth=1;
+
+    C1 -> C2 -> C3
+  }
+
+  subgraph cluster_storage {
+    label="storage";
+    style="rounded";
+    color="#111111";
+    penwidth=1;
+
+    subgraph {
+      node [ shape = note ]
+      edge [ style = invis ]
+      clean_1 -> clean_2 -> clean_3
+    }
+    subgraph {
+      node [ shape = note ]
+      edge [ style = invis ]
+      data_1 -> data_2 -> data_3
+    }
+    subgraph {
+      node [ shape = note ]
+      edge [ style = invis ]
+      models_1 -> models_2 -> models_3
+    }
+    subgraph {
+      node [ shape = note ]
+      edge [ style = invis ]
+      report_1 -> report_2 -> report_3
+    }
+  }
+
+  { rank = same; C1; clean_1; data_1; models_1; report_1 }
+  { rank = same; C2; clean_2; data_2; models_2; report_2 }
+  { rank = same; C3; clean_3; data_3; models_3; report_3 }
+  edge [ style = invis ]
+  C1 -> clean_1 -> data_1 -> models_1 -> report_1 []
+  C2 -> clean_2 -> data_2 -> models_2 -> report_2 []
+  C3 -> clean_3 -> data_3 -> models_3 -> report_3 []
+
+  edge [ style = dashed ]
+  C1 -> { clean_2, data_2 }
+  C2 -> { clean_2, data_2, models_2 }
+  C3 -> { clean_2, data_2, models_2, report_3 }
+
+}
+```
+
+
+The process is perfectly linear and we never revise what we've written once we
+move on to the next step. Unfortunately his is rarely the case.
+
+- Step 1: `clean.R` reads raw data `survery.csv`, clean the data, and generate 
+a new dataset `clean_survery.csv`,
+- Step 2: `eda.Rmd` performs elementary data analysis. 
+- **Oppsie 1**: Your analysis shows that `mean(age)` for a school is 80. That does
+not sound right. Upon investigation you discover missing `age` is coded `999`.
+- **Step 4**: Update `clean.R`, regenerate `clean_survey.csv`,rewrite 
+`eda.Rmd`.
+- Step 3: `models.R` builds models,
+- Step 4: `figures.R` produces figures `my_figure.jpg`,
+- Step 5: `report.Rmd` illustrates findings.
+
+```{dot}
+digraph {
+  newrank=true;
+  rankdir=TB;
+  fontsize=30
+  nodesep=1;
+  ranksep=0.5;
+
+  subgraph cluster_clean {
+    label="Step 1";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=10;
+    rankdir = TB;
+    fontsize = 20
+
+    node [ shape = note ];
+    survery       [ label = "survery.csv" ]
+    clean         [ label = "clean.R" ]
+    clean_survery [ label = "clean_survery.csv" ]
+
+    survery -> clean -> clean_survery 
+  }
+
+  eda [ shape = note, label = "eda.Rmd" ]
+  clean_survery -> eda [ label = " Step 2" ]
+
+  subgraph cluster_clean_new {
+    label="Step 1";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=10;
+    rankdir = TB;
+    fontsize = 20
+
+    node [ shape = note ];
+    survery_new       [ label = "survery.csv" ]
+    clean_new         [ label = "clean.R" ]
+    clean_survery_new [ label = "clean_survery.csv" ]
+
+    survery_new -> clean_new -> clean_survery_new 
+  }
+
+  eda_new [ shape = note, label = "eda.Rmd" ]
+  clean_survery_new -> eda_new
+
+  models  [ label = "models.R" ]
+  report  [ label = "report.Rmd" ]
+
+  subgraph cluster_figures {
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=10;
+    rankdir = TB;
+    fontsize = 20
+
+    node [ shape = note ];
+    figures [ label = "figures.R" ]
+    figure  [ label = "my_figure.jpg" ]
+  }
+
+
+  { rank = same; eda; models; figures }
+
+
+  edge [ fontsize = 20 ]
+  clean_survery -> models  [ label  = " Step 3" ];
+  clean_survery -> figures;
+  figures -> figure [ label = " Step 4"]
+
+  models -> report [ label = " Step 5" ]
+  figure -> report
+}
+```
+
+
+
+
+---
+
+```
+my-project/
+├── data/
+│   └── survey.csv 
+├── scripts/
+│   ├── clean.R
+│   ├── models.R 
+│   └── figures.R 
+├── results/
+│   ├── clean_survey.csv
+│   ├── figure_1.jpg
+│   ├── figure_2.jpg
+│   └── figure_3.jpg
+├── eda.Rmd
+└── report.Rmd
+```
+
+In this implementation, we add a layer between our commits and "speical 
+storage": tree. Each commit points to exactly one tree, and each tree points
+to one or multiple files[^note3]. Note that the three `tree`s point to three different
+versions of `data.csv`.
+
+[^note3]: `tree` maps file names to files in "speical storage" (blob). Recall
+that `data.csv` is not stored in the root directory along with `report.csv` but
+in a subdirectory `data/`. So `tree 1` is a mapping as follows
+```txt
+report.Rmd -> report.Rmd version-1
+data/data.csv -> data.csv version-1
+```
+While `tree 2` is a mapping as follows
+```txt
+report.Rmd -> report.Rmd version-2
+data/data.csv -> data.csv version-2
+```
+When you are "traveling" between commits (`checkout`), Git reconstruct the
+root directory based on the correspoding tree (file name -> blob mapping)
+
+
+To fix this, we simply keep one copy of `data.csv` in our "special storage", and
+points all three trees to this `data.csv`:
+
+```{mermaid}
+flowchart LR
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph tree
+direction TB
+T1[tree 1]
+T2[tree 2]
+T3[tree 3]
+end
+
+subgraph storage["special storage"]
+direction TB
+B0[/data.csv<br>version-1/]
+B1[/report.Rmd<br>version-1/]
+B2[/report.Rmd<br>version-2/]
+B3[/report.Rmd<br>version-3/]
+end
+
+C1 .-> T1
+C2 .-> T2
+C3 .-> T3
+
+T1 .-> B1
+T1 .-> B0
+T2 .-> B2
+T2 .-> B0
+T3 .-> B3
+T3 .-> B0
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style tree fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+
+linkStyle 6 stroke:red,stroke-width:3px
+linkStyle 8 stroke:red,stroke-width:3px
+linkStyle 10 stroke:red,stroke-width:3px
+```
+
+Since `data.csv` was never changed, all three `tree`s points to the same 
+`data.csv` from version 1.[^note4]
+
+[^note4]: Although one could argue that `data.csv` doesn't even belong in Git.
+We will discuss this later in `.gitignore`
+
+Now compare the two implementations side by side:
+
+:::: {.columns layout-ncol=2}
+::: {}
+**naieve:**
+```{mermaid}
+flowchart LR
+
+HEAD([HEAD])
+HEAD --> C1
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph trees
+direction TB
+T1[tree 1]
+T2[tree 2]
+T3[tree 3]
+end
+
+subgraph storage["special storage"]
+direction TB
+B11[/report.Rmd<br>version-1/]
+B12[/data.csv<br>version-1/]
+B21[/report.Rmd<br>version-2/]
+B22[/data.csv<br>version-2/]
+B31[/report.Rmd<br>version-3/]
+B32[/data.csv<br>version-3/]
+end
+
+C1 .-> T1
+C2 .-> T2
+C3 .-> T3
+
+T1 .-> B11
+T1 .-> B12
+T2 .-> B21
+T2 .-> B22
+T3 .-> B31
+T3 .-> B32
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style trees fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+
+style HEAD fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+style C1 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style T1 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B11 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B12 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+linkStyle 0 stroke:red,stroke-width:3px
+linkStyle 3 stroke:red,stroke-width:3px
+linkStyle 6 stroke:red,stroke-width:3px
+linkStyle 7 stroke:red,stroke-width:3px
+```
+:::
+::: {}
+**Git:**
+```{mermaid}
+flowchart LR
+
+HEAD([HEAD])
+HEAD --> C1
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph tree
+direction TB
+T1[tree 1]
+T2[tree 2]
+T3[tree 3]
+end
+
+subgraph storage["special storage"]
+direction TB
+B0[/data.csv<br>version-1/]
+B1[/report.Rmd<br>version-1/]
+B2[/report.Rmd<br>version-2/]
+B3[/report.Rmd<br>version-3/]
+end
+
+C1 .-> T1
+C2 .-> T2
+C3 .-> T3
+
+T1 .-> B1
+T1 .-> B0
+T2 .-> B2
+T2 .-> B0
+T3 .-> B3
+T3 .-> B0
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style tree fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+
+style HEAD fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+style C1 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style T1 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B0 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B1 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+linkStyle 0 stroke:red,stroke-width:3px
+linkStyle 3 stroke:red,stroke-width:3px
+linkStyle 6 stroke:red,stroke-width:3px
+linkStyle 7 stroke:red,stroke-width:3px
+```
+:::
+::::
+
+:::: {.columns layout-ncol=2}
+::: {}
+```{mermaid}
+flowchart LR
+
+HEAD([HEAD])
+HEAD --> C2
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph trees
+direction TB
+T1[tree 1]
+T2[tree 2]
+T3[tree 3]
+end
+
+subgraph storage["special storage"]
+direction TB
+B11[/report.Rmd<br>version-1/]
+B12[/data.csv<br>version-1/]
+B21[/report.Rmd<br>version-2/]
+B22[/data.csv<br>version-2/]
+B31[/report.Rmd<br>version-3/]
+B32[/data.csv<br>version-3/]
+end
+
+C1 .-> T1
+C2 .-> T2
+C3 .-> T3
+
+T1 .-> B11
+T1 .-> B12
+T2 .-> B21
+T2 .-> B22
+T3 .-> B31
+T3 .-> B32
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style trees fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+
+style HEAD fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+style C2 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style T2 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B21 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B22 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+linkStyle 0 stroke:red,stroke-width:3px
+linkStyle 4 stroke:red,stroke-width:3px
+linkStyle 8 stroke:red,stroke-width:3px
+linkStyle 9 stroke:red,stroke-width:3px
+```
+:::
+::: {}
+```{mermaid}
+flowchart LR
+
+HEAD([HEAD])
+HEAD --> C2
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph tree
+direction TB
+T1[tree 1]
+T2[tree 2]
+T3[tree 3]
+end
+
+subgraph storage["special storage"]
+direction TB
+B0[/data.csv<br>version-1/]
+B1[/report.Rmd<br>version-1/]
+B2[/report.Rmd<br>version-2/]
+B3[/report.Rmd<br>version-3/]
+end
+
+C1 .-> T1
+C2 .-> T2
+C3 .-> T3
+
+T1 .-> B1
+T1 .-> B0
+T2 .-> B2
+T2 .-> B0
+T3 .-> B3
+T3 .-> B0
+
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style tree fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+
+style HEAD fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+style C2 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style T2 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B0 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B2 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+linkStyle 0 stroke:red,stroke-width:3px
+linkStyle 4 stroke:red,stroke-width:3px
+linkStyle 8 stroke:red,stroke-width:3px
+linkStyle 9 stroke:red,stroke-width:3px
+```
+:::
+::::
+
+:::: {.columns layout-ncol=2}
+::: {}
+```{mermaid}
+flowchart LR
+
+HEAD([HEAD])
+HEAD --> C3
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph trees
+direction TB
+T1[tree 1]
+T2[tree 2]
+T3[tree 3]
+end
+
+subgraph storage["special storage"]
+direction TB
+B11[/report.Rmd<br>version-1/]
+B12[/data.csv<br>version-1/]
+B21[/report.Rmd<br>version-2/]
+B22[/data.csv<br>version-2/]
+B31[/report.Rmd<br>version-3/]
+B32[/data.csv<br>version-3/]
+end
+
+C1 .-> T1
+C2 .-> T2
+C3 .-> T3
+
+T1 .-> B11
+T1 .-> B12
+T2 .-> B21
+T2 .-> B22
+T3 .-> B31
+T3 .-> B32
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style trees fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+
+style HEAD fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+style C3 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style T3 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B31 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B32 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+linkStyle 0 stroke:red,stroke-width:3px
+linkStyle 5 stroke:red,stroke-width:3px
+linkStyle 10 stroke:red,stroke-width:3px
+linkStyle 11 stroke:red,stroke-width:3px
+```
+:::
+::: {}
+```{mermaid}
+flowchart LR
+
+HEAD([HEAD])
+HEAD --> C3
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph tree
+direction TB
+T1[tree 1]
+T2[tree 2]
+T3[tree 3]
+end
+
+subgraph storage["special storage"]
+direction TB
+B0[/data.csv<br>version-1/]
+B1[/report.Rmd<br>version-1/]
+B2[/report.Rmd<br>version-2/]
+B3[/report.Rmd<br>version-3/]
+end
+
+C1 .-> T1
+C2 .-> T2
+C3 .-> T3
+
+T1 .-> B1
+T1 .-> B0
+T2 .-> B2
+T2 .-> B0
+T3 .-> B3
+T3 .-> B0
+
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style tree fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+
+style HEAD fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+style C3 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style T3 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B0 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+style B3 fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+
+linkStyle 0 stroke:red,stroke-width:3px
+linkStyle 5 stroke:red,stroke-width:3px
+linkStyle 10 stroke:red,stroke-width:3px
+linkStyle 11 stroke:red,stroke-width:3px
+```
+:::
+::::
+
+### Feature Branches
+
+
+Git would only save the full
+copy for Version 1. For subsequent **commits**, it records what it predecessor 
+is, and the transformation one has to make to convert the previous commit to 
+this commit, known as **delta**:
+
+:::: {.columns layout-ncol=3}
+::: {}
+Version 1:
+
+```txt
+grocery:
+  apple
+  banana
+```
+:::
+::: {}
+Version 2:
+
+- previous commit: 1
+- delta:
+  - **add** the following to line 4:
+
+```txt
+  organge
+```
+:::
+::: {}
+Version 3:
+
+- previous commit: 2
+- delta:
+  - **remove** line 2
+  - **add** the following to line 5:
+```txt
+clean:
+  dishes
+  laundry
+```
+:::
+::::
+
+Note that Git delta is *line-based*. Git isn't aware that what we are writing
+is a list structure, or `apple` is an item of list `grocery`. The diff Git 
+records is not "remove `apple` from list `grocery`" but "remove line 2 (which 
+happens to contain `apple`)" Every changes made is either adding or removing 
+the entire lines.
+
+A text representation for this difference is as follows:
+
+:::: {.columns layout-ncol=3}
+::: {}
+Version 1:
+
+```diff
+grocery:
+  apple
+  banana
+```
+:::
+::: {}
+Version 2:
+
+```diff
+grocery:
+  apple
+  banana
++ orange
+```
+:::
+::: {}
+Version 3:
+
+```diff
+grocery:
+- apple
+  banana
+  orange
++ clean:
++  dishes
++  laundry
+```
+:::
+::::
+
+where a leading `+` sign indicates the lines that are added and a leading `-` 
+indicates the lines being removed.
+
+This is also commonly represented as graphs: 
+
+```{mermaid}
+gitGraph
+    commit id: "1"
+    commit id: "2"
+    commit id: "3"
+```
+
+Git not only tracks changes in one single file but also multiple files. This
+efficient representation of code changes is especially appreciated when you
+want to track changes of your entire project.
+
+Going back to our `my-project` example. Including `data.csv` into our 
+primitive near-duplication manual versioning can quickly increase our disk-usage:
+
+```{mermaid}
+flowchart LR
+
+subgraph commits
+direction LR
+C1((commit<br>version-1))
+C2((commit<br>version-2))
+C3((commit<br>version-3))
+
+C1 --> C2
+C2 --> C3
+end
+
+subgraph storage["special storage"]
+direction TB
+B1[/todo.txt<br>version-1/]
+B2[/todo.txt<br>version-2/]
+B3[/todo.txt<br>version-3/]
+end
+
+C1 -. snapshot .-> B1
+C2 -. snapshot .-> B2
+C3 -. snapshot .-> B3
+
+style commits fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+style storage fill:#eef6ff,stroke:#4a90e2,stroke-width:2px
+```
+
+
+```
+my-project/
+├── 2025-01-01/
+│   ├── data/
+│   │   └── data.csv
+│   └── report.Rmd
+│
+├── 2025-02-01/
+│   ├── data/
+│   │   └── data.csv
+│   └── report.Rmd
+│
+├── 2025-03-01/
+│   ├── data/
+│   │   └── data.csv
+│   └── report.Rmd
+│
+└── final/
+    ├── data/
+    │   └── data.csv
+    └── report.Rmd
+```
+
+You now have four copies of `data.csv`! But with Git, if `data.csv` is not
+changed between iterations, no transformation is needed.[^note3]
+
+
+### Feature branches
+
+
+```{mermaid}
+flowchart TB
+
+C1[commit a1b2c3]
+T1[tree d4e5f6]
+B1[todo.txt\nblob 111aaa]
+
+C2[commit b2c3d4]
+T2[tree e5f6g7]
+B2[todo.txt\nblob 222bbb]
+
+C1 --> T1 --> B1
+C2 --> T2 --> B2
+```
+
+```{mermaid}
+flowchart TB
+
+C1[commit 1]
+T1[tree]
+
+B1[todo.txt\nblob A]
+B2[notes.txt\nblob B]
+
+C2[commit 2]
+T2[tree]
+
+B3[todo.txt\nblob C]
+
+C1 --> T1
+T1 --> B1
+T1 --> B2
+
+C2 --> C1
+C2 --> T2
+
+T2 --> B3
+T2 --> B2
+```
+
+## Decentralized Collaboration
+
+
+
+
+
+```{dot}
+digraph {
+  newrank=true;
+  rankdir=TB;
+  fontsize=30
+  nodesep=1;
+  ranksep=0.5;
+
+  subgraph cluster_clean {
+    label="Step 1";
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=10;
+    rankdir = TB;
+    fontsize = 20
+
+    node [ shape = note ];
+    survery       [ label = "survery.csv" ]
+    clean         [ label = "clean.R" ]
+    clean_survery [ label = "clean_survery.csv" ]
+
+    survery -> clean -> clean_survery 
+  }
+
+  node [ shape = note ];
+  eda     [ label = "eda.Rmd" ]
+  models  [ label = "models.R" ]
+  report  [ label = "report.Rmd" ]
+
+  subgraph cluster_figures {
+    style="rounded";
+    color="#111111";
+    penwidth=2;
+    margin=10;
+    rankdir = TB;
+    fontsize = 20
+
+    node [ shape = note ];
+    figures [ label = "figures.R" ]
+    figure  [ label = "my_figure.jpg" ]
+  }
+
+
+  { rank = same; eda; models; figures }
+
+
+  edge [ fontsize = 20 ]
+  clean_survery -> eda     [ xlabel = " Step 2" ];
+  clean_survery -> models  [ label  = " Step 3" ];
+  clean_survery -> figures;
+  figures -> figure [ label = " Step 4"]
+
+  models -> report [ label = " Step 5" ]
+  figure -> report
+
+}
+```
